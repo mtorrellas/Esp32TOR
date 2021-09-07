@@ -1,16 +1,18 @@
 #include "Esp32Tor.h"
-//#include "Esp32Tor.hpp"
+
+void luz(bool st)
+{
+  digitalWrite(LED_BUILTIN, st);
+}
 
 void setup()
 {
-  FT.begin();
-  Serial.println("===============================================================================");
+  pinMode(LED_BUILTIN, OUTPUT);
+  FT.begin(luz);
   FT.activar();
-  Serial.println("===============================================================================");
 }
 
 void loop()
 {
-
-  FT.update();
+  FT.update(25);
 }

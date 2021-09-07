@@ -11,7 +11,12 @@
 #define NTPserver2 "europe.pool.ntp.org"
 #define NTPserver3 "europe.pool.ntp.org"
 
-//bool temporizador(uint16_t ms);
+bool temporizador(uint16_t);
+bool conectar_WiFi();
+void SNTP(timeval &tv);
+
+
+//void luzLED(uint8_t pin = 2, uint tON = 100, uint tOff = 400, bool invert = false);
 
 /*
 // trim from start (in place)
@@ -53,6 +58,23 @@ bool temporizador(uint16_t ms)
   }
 
   return false;
+}
+
+bool cambioEstado(uint alto, uint bajo)
+{
+  uint tAct = millis();
+  static uint32_t tIni = tAct;
+  static bool estado = HIGH;
+  static uint tPer = alto;
+
+  if ( (tAct - tIni) >= tPer )
+  {
+    estado = !estado;
+    tPer = (estado) ? alto : bajo;
+    tIni = tAct;
+  }
+
+  return estado;
 }
 
 bool conectar_WiFi()

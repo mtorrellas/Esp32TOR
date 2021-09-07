@@ -26,9 +26,15 @@ fechaTOR::fechaTOR()
 
 fechaTOR::~fechaTOR() {}
 
+void fechaTOR::luzLED()
+{
+  bool est = cambioEstado(LED_On, LED_Off);
+  if( LED_estado !=  est)
+    LED_estado = est;
+    this->LED(LED_estado);
+}
 
-
-void fechaTOR::actualizar(const char *msg)
+void fechaTOR::actualizar(const char *msg, const char * FL)
 {
   struct tm tml;
   gettimeofday(&RTC_actual, NULL);
@@ -54,20 +60,25 @@ void fechaTOR::actualizar(const char *msg)
   sprintf(this->cFechaLarga, "%s, %02i de %s de %04i, %s",
           this->cDia, this->dia, this->cMes, this->anio, this->cHora);
 #ifdef _FT_DEBUG
-  Serial.printf("%s: UTC %lu-%s\r\n", msg, this->UTC, this->cFechaLarga);
+  Serial.printf("%s: UTC %lu-%s%s", msg, this->UTC, this->cFechaLarga, FL);
 #endif
 }
 
-bool fechaTOR::update(uint16_t seg)
+bool fechaTOR::update(int16_t seg)
 {
-  static uint16_t pasada = 0 ;
+   if(this->LED != nullptr)
+    this->luzLED();
+
   if (temporizador(1000))
   {
-    Serial.printf("Pasada % 3d-", ++pasada );
-    this->actualizar("Ahora");
-    if ( pasada >= seg)
+    this->actualizar("Ahora", "\t");
+    static int p =  seg-this->UTC % seg;
+    if (p == 0)
+      p = seg;
+    Serial.printf("\tPasada %d\r\n", p-- );
+    
+    if ( p == 0)
     {
-      //pasada = 0;
       this->suspender();
     }
   }
@@ -75,8 +86,10 @@ bool fechaTOR::update(uint16_t seg)
   return false;
 }
 
-void fechaTOR::begin(  bool (*ext)(uint16_t s))
+void fechaTOR::begin( void(*led)(bool) )
 {
+  this->LED = led;
+
   Serial.begin(115200);
   Serial.println();
   Serial.println("*******************************************************************************");
@@ -85,40 +98,21 @@ void fechaTOR::begin(  bool (*ext)(uint16_t s))
   {
     if ( conectar_WiFi() )
       SNTP(RTC_iniciado);
+    //this->actualizar("Reloj ajustado");
 
-    this->actualizar("Reloj ajustado");
-
+    RTC_error.tv_sec = 0;
+    RTC_error.tv_usec = 0;
     RTC_reinicio = RTC_iniciado;
-    RTC_despertar.tv_sec = this->UTC + SLEEP_INTERVALO - this->UTC % SLEEP_INTERVALO;
-    RTC_despertar.tv_usec = 0;
-    uint16_t susp = tv2seg(RTC_despertar) - tv2seg(RTC_reinicio);
-    if ( susp < 20 )
-      RTC_despertar.tv_sec += SLEEP_INTERVALO;
+    RTC_despertar = RTC_iniciado;
   }
   Serial.printf("Inicio UTC%lu, Reiniciado: UTC%lu, Reactivar: UTC%lu\r\n", 
          tv2seg(RTC_iniciado), tv2seg(RTC_reinicio), tv2seg(RTC_despertar) );
 }
 
-void fechaTOR::suspender()
-{
-  WiFi.disconnect(true);
-  FT.actualizar("\r\nDesconectar sistema");
-  struct timeval tv;
-
-  timersub(&RTC_despertar, &RTC_actual, &tv);
-  time_t tiempo = tv2microseg(tv);
-  float error = (float)tiempo * 24 / 3600;
-  Serial.printf( "Suspendido durante %f segundos + %f de error, Actual: UTC%lu, Reinicio: UTC%lu\r\n", 
-              (float)tiempo / 1000000, error / 1000000, tv2seg(RTC_actual), tv2seg(RTC_despertar) );
-
-  Serial.println("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-
-
-  esp_deep_sleep( tiempo + error );
-}
-
 void fechaTOR::activar()
 {
+  Serial.println("===============================================================================");
+
   esp_sleep_wakeup_cause_t causaACTV = esp_sleep_get_wakeup_cause();
   Serial.println(DESPdatos[causaACTV]);
 
@@ -131,16 +125,53 @@ void fechaTOR::activar()
     break;
   case ESP_SLEEP_WAKEUP_TIMER:
     RTC_reinicio = RTC_actual;
-    settimeofday(&RTC_despertar, NULL);
-    RTC_despertar.tv_sec += SLEEP_INTERVALO;
-    //RTC_interno(&RTC_actual, SLEEP_INTERVALO);
 
-    this->actualizar("Fecha INTERNA");
+    //RTC_despertar.tv_sec += SLEEP_INTERVALO;
+    timersub( &RTC_reinicio, &RTC_despertar, &RTC_error );
+    settimeofday(&RTC_despertar, NULL);
+
+    this->actualizar("Fecha INTERNA", "\t");
+    Serial.printf("Error %f seg.\r\n", tv2seg_f( RTC_error) );
     break;
   default: 
     break;
   }
-  
+  Serial.println("===============================================================================");
+}
+
+void fechaTOR::suspender()
+{
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+
+  FT.actualizar("\r\nDesconectar sistema");
+  // RTC_despertar.tv_sec = this->UTC - this->UTC % SLEEP_INTERVALO;
+  // RTC_despertar.tv_usec = 0;
+  RTC_despertar.tv_sec = SLEEP_INTERVALO + this->UTC - this->UTC % SLEEP_INTERVALO;
+  RTC_despertar.tv_usec = 0;
+
+
+
+  if ( RTC_despertar.tv_sec % 3600  == 0)
+  {
+    RTC_iniciado.tv_sec = 0;
+    RTC_iniciado.tv_usec = 0;
+  }
+
+  struct timeval tv;
+  timersub(&RTC_despertar, &RTC_actual, &tv);
+
+  float tiempo = tv2microseg(tv);
+  float error =  tiempo * 15 / 3600; //tv2microseg(RTC_error); 
+
+  // Serial.printf( "Suspendido durante %.3f segundos + %.3f de error, Actual: UTC%lu, Reinicio: UTC%lu\r\n", 
+  //             tiempo / 1000000, error / 1000000, tv2seg(RTC_actual), tv2seg(RTC_despertar) );
+  Serial.printf( "Suspendido durante %.3f segundos + %.3f de error, Actual: UTC%lu, Reinicio: UTC%lu\r\n", 
+              tv2seg_f(tv), error / 1000000, tv2seg(RTC_actual), tv2seg(RTC_despertar) );
+
+  Serial.println("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+
+  esp_deep_sleep( round(tiempo + error) );
 }
 
 fechaTOR FT;
