@@ -2,7 +2,7 @@
 #ifndef __ESP32TOR__
 #define __ESP32TOR__
 
-#define _FT_DEBUG
+#define _TOR_DEBUG
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -68,8 +68,10 @@ class fechaTOR
 private:
   void (*RTC_externo)()=nullptr ;
   void (*LED)( bool )=nullptr;
-  uint LED_On = 50;
-  uint LED_Off = 950;
+  void (*salida)()=nullptr;
+  void (*entrada)()=nullptr;
+  uint LED_On = 500;
+  uint LED_Off = 500;
   bool LED_estado = true;
 public:
   const char *NombreMes[12] = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
@@ -77,6 +79,7 @@ public:
 
   const char *CET = "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00";
 
+  _fTOR intercambio;
   uint8_t  segundo;
   uint8_t  minuto;
   uint8_t  hora;
@@ -100,11 +103,13 @@ private:
   void actualizar(const char * msg = "Fecha", const char * FL = "\r\n");
   void suspender();
   void luzLED();
+  void importar();
+  void exportar();
 public:
   fechaTOR(/* args */);
   ~fechaTOR();
-  //void begin();
-  void begin( void(*led)(bool) = nullptr );
+  void setLED(uint, uint);
+  void begin( void(*led)(bool) = nullptr, void(*)() = nullptr, void(*)() = nullptr);
   void activar();
   bool update(int16_t s = 20);
 };
