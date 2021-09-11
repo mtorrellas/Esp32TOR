@@ -17,7 +17,7 @@ void reloj2TF()
 
 void TF2reloj()
 {
-  Serial.print("Para ajustar reloj placa: ");
+  Serial.print("Importado desde \"fechaTOR\": ");
   Serial.println(FT.cFechaLarga);
 }
 
@@ -25,8 +25,6 @@ void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
   FT.begin(luz, nullptr, TF2reloj );
-  Serial.printf("\r\nEJEMPLO USO LIBRERIA \"Esp32Tor\" Version: %s\r\n", VERSION);
-  FT.activar();
   FT.setLED(50, 950);
 }
 

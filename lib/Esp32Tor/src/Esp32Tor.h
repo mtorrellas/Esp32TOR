@@ -3,6 +3,7 @@
 #define __ESP32TOR__
 
 #define _TOR_DEBUG
+#define TOR_VERSION "3.0.0"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -101,16 +102,17 @@ public:
  **/
 private:
   void actualizar(const char * msg = "Fecha", const char * FL = "\r\n");
+  void inicio();
   void suspender();
+  void activar();
   void luzLED();
-  void importar();
+  bool importar();
   void exportar();
 public:
   fechaTOR(/* args */);
   ~fechaTOR();
   void setLED(uint, uint);
   void begin( void(*led)(bool) = nullptr, void(*)() = nullptr, void(*)() = nullptr);
-  void activar();
   bool update(int16_t s = 20);
 };
 

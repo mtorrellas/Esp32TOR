@@ -39,8 +39,11 @@ void fechaTOR::luzLED()
   this->LED(LED_estado);
 }
 
-void fechaTOR::importar()
+bool fechaTOR::importar()
 {
+  if (entrada == nullptr)
+    return false;
+
   struct tm ti;
   timeval tv;
   this->entrada();
@@ -59,6 +62,7 @@ void fechaTOR::importar()
   RTC_despertar = RTC_iniciado;
   RTC_error.tv_sec = 0;
   RTC_error.tv_usec = 0;
+  return true;
 }
 
 void fechaTOR::actualizar(const char *msg, const char *FL)
@@ -125,18 +129,8 @@ bool fechaTOR::update(int16_t seg)
   return false;
 }
 
-void fechaTOR::begin(void (*led)(bool), void (*e)(), void (*s)())
+void fechaTOR::inicio()
 {
-  this->LED = led;
-  this->entrada = e;
-  this->salida = s;
-
-  Serial.begin(115200);
-  Serial.println();
-  Serial.println("*******************************************************************************");
-
-  if (tv2seg(RTC_iniciado) == 0)
-  {
     if (conectar_WiFi())
     {
       SNTP(RTC_iniciado);
@@ -148,15 +142,27 @@ void fechaTOR::begin(void (*led)(bool), void (*e)(), void (*s)())
       if (salida != nullptr)
         salida();
     }
-    else if (entrada != nullptr)
-    {
-      importar();
-    }
+    else if (!this->importar())
+      Serial.println("Imposible ajustar el reloj del sistema");
 
-  }
+}
+
+void fechaTOR::begin(void (*led)(bool), void (*ent)(), void (*sal)())
+{
+  this->LED = led;
+  this->entrada = ent;
+  this->salida = sal;
+
+  Serial.begin(115200);
+  Serial.println();
+  Serial.println("*******************************************************************************");
+
+  Serial.printf("LIBRERIA \"Esp32Tor\" Version: %s\r\n", TOR_VERSION);
+
   Serial.printf("Inicio UTC%lu, Reiniciado: UTC%lu, Reactivar: UTC%lu\r\n",
                 tv2seg(RTC_iniciado), tv2seg(RTC_reinicio), tv2seg(RTC_despertar));
 
+  this->activar();
 }
 
 void fechaTOR::activar()
@@ -169,14 +175,15 @@ void fechaTOR::activar()
   switch (causaACTV)
   {
   case ESP_SLEEP_WAKEUP_UNDEFINED:
-
+    this->inicio();
     break;
   case ESP_SLEEP_WAKEUP_TIMER:
-    if (entrada != nullptr)
+    if (tv2seg(RTC_iniciado) == 0)
     {
-      importar();
+      this->inicio();
     }
-    else
+    
+    if ( !this->importar() )
     {
       this->actualizar("Sistema Activado");
       RTC_reinicio = RTC_actual;
