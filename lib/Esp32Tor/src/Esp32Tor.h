@@ -2,22 +2,15 @@
 #ifndef __ESP32TOR__
 #define __ESP32TOR__
 
-#define _TOR_DEBUG
-#define TOR_VERSION "3.0.0"
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include <time.h>
 #include <sys/time.h>
 #include <stdlib.h>
-//#include <cstdlib>
 #include <lwip/apps/sntp.h>
 #include <Preferences.h>
-// #include <driver/adc.h>
-// #include <esp_wifi.h>
-// #include <esp_bt.h>
 
-#define SLEEP_INTERVALO 300  //900
+#include "configTOR.h"
 
 #define tv2microseg(tv) ( (tv).tv_sec * 1000000 + (tv).tv_usec )
 #define tv2miliseg(tv) ( (tv).tv_sec * 1000 + round(  (float)(tv).tv_usec / 1000 ) )
@@ -71,6 +64,7 @@ private:
   void (*LED)( bool )=nullptr;
   void (*salida)()=nullptr;
   void (*entrada)()=nullptr;
+  void (*dormir)(uint64_t);
   uint LED_On = 500;
   uint LED_Off = 500;
   bool LED_estado = true;
@@ -92,7 +86,7 @@ public:
   time_t   UTC;
   const char *cDia;
   const char *cMes;
-  char cFecha[50];
+  char cFecha[15];
   char cFechaCorta[50];
   char cFechaLarga[100];
   char cHora[10];
@@ -112,7 +106,7 @@ public:
   fechaTOR(/* args */);
   ~fechaTOR();
   void setLED(uint, uint);
-  void begin( void(*led)(bool) = nullptr, void(*)() = nullptr, void(*)() = nullptr);
+  void begin( void(*led)(bool) = nullptr, void(*e)() = nullptr, void(*s)() = nullptr, void (*d)(uint64_t) = nullptr);
   bool update(int16_t s = 20);
 };
 

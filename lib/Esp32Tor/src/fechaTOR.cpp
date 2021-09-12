@@ -85,7 +85,7 @@ void fechaTOR::actualizar(const char *msg, const char *FL)
   this->cDia = NombreDia[tml.tm_wday];
   this->cMes = NombreMes[tml.tm_mon];
   strftime(this->cHora, 10, "%H:%M:%S", &tml);
-  strftime(this->cFecha, 10, "%d-%m-%Y", &tml);
+  strftime(this->cFecha, 12, "%d-%m-%Y", &tml);
   sprintf(this->cFechaCorta, "%02i %s %04i",
           this->dia, this->cMes, this->anio);
   sprintf(this->cFechaLarga, "%s, %02i de %s de %04i, %s",
@@ -124,6 +124,7 @@ bool fechaTOR::update(int16_t seg)
     {
       this->suspender();
     }
+    return true;
   }
 
   return false;
@@ -147,17 +148,19 @@ void fechaTOR::inicio()
 
 }
 
-void fechaTOR::begin(void (*led)(bool), void (*ent)(), void (*sal)())
+void fechaTOR::begin(void (*led)(bool), void (*ent)(), void (*sal)(), void (*dmr)(uint64_t) )
 {
   this->LED = led;
   this->entrada = ent;
   this->salida = sal;
+  this->dormir = dmr;
 
   Serial.begin(115200);
+  Serial.flush();
   Serial.println();
   Serial.println("*******************************************************************************");
 
-  Serial.printf("LIBRERIA \"Esp32Tor\" Version: %s\r\n", TOR_VERSION);
+  Serial.printf("LIBRERIA [Esp32Tor] Version: %s\r\n", TOR_VERSION);
 
   Serial.printf("Inicio UTC%lu, Reiniciado: UTC%lu, Reactivar: UTC%lu\r\n",
                 tv2seg(RTC_iniciado), tv2seg(RTC_reinicio), tv2seg(RTC_despertar));
@@ -206,10 +209,12 @@ void fechaTOR::suspender()
   WiFi.mode(WIFI_OFF);
 
   FT.actualizar("\r\nDesconectar sistema");
-  // RTC_despertar.tv_sec = this->UTC - this->UTC % SLEEP_INTERVALO;
-  // RTC_despertar.tv_usec = 0;
+
   RTC_despertar.tv_sec = SLEEP_INTERVALO + this->UTC - this->UTC % SLEEP_INTERVALO;
   RTC_despertar.tv_usec = 0;
+
+  if (RTC_despertar.tv_sec < SLEEP_INTERVALO)
+    RTC_despertar.tv_sec += SLEEP_INTERVALO;
 
   if (RTC_despertar.tv_sec % 3600 == 0)
   {
@@ -230,7 +235,10 @@ void fechaTOR::suspender()
 
   Serial.println("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 
-  esp_deep_sleep(round(tiempo + error));
+  if( this->dormir == nullptr)
+    esp_deep_sleep(round(tiempo + error));
+  else
+    this->dormir(round(tiempo + error) );
 }
 
 fechaTOR FT;
