@@ -1,12 +1,8 @@
 #include <M5StickC.h>
 #include "Esp32Tor.h"
 
-// #define VERSION '"3.0.1"'
-// #define PLACA '"M5StickC"'
-// #define _DEBUG_
-// #define INTERVALO 300
-// #define WFssid '"famitor_IoT"'
-// #define WFpassword '"tarazona"'
+RTC_DateTypeDef dt;
+RTC_TimeTypeDef tt;
 
 void LCD_reloj();
 void LCD_inicio(const char *TIT = "Esp32Tor");
@@ -19,31 +15,32 @@ void luz(bool st)
 
 void reloj2TF()
 {
-  FT.intercambio.segundo  = 30;
-  FT.intercambio.minuto   = 1;
-  FT.intercambio.hora     = 12;
-  FT.intercambio.dia      = 1;
-  FT.intercambio.mes      = 1;
-  FT.intercambio.anio     = 2000;
+  M5.Rtc.GetData(&dt);
+  M5.Rtc.GetTime(&tt);
+  FT.intercambio.segundo  = tt.Seconds;
+  FT.intercambio.minuto   = tt.Minutes;
+  FT.intercambio.hora     = tt.Hours;
+  FT.intercambio.dia      = dt.Date;
+  FT.intercambio.mes      = dt.Month;
+  FT.intercambio.anio     = dt.Year;
 }
 
 void TF2reloj()
 {
-  RTC_DateTypeDef dt;
-  RTC_TimeTypeDef tt;
 
-  dt.Date = FT.dia;
-  dt.Month = FT.mes;
-  dt.Year = FT.anio;
 
-  tt.Hours = FT.hora;
-  tt.Minutes = FT.minuto;
-  tt.Seconds = FT.segundo;
+  dt.Date  = FT.T_dia;
+  dt.Month = FT.T_mes;
+  dt.Year  = FT.T_anio;
 
-  // M5.Rtc.SetData(&dt);
-  // M5.Rtc.SetTime(&tt);
+  tt.Hours   = FT.T_hora;
+  tt.Minutes = FT.T_minuto;
+  tt.Seconds = FT.T_segundo;
 
-  Serial.printf("Importado desde \"fechaTOR\": %02d-%02d-%04d %02d:%02d:%02d\r\n",
+  M5.Rtc.SetData(&dt);
+  M5.Rtc.SetTime(&tt);
+
+  Serial.printf("Ajuste RTC desde \"fechaTOR\": %02d-%02d-%04d %02d:%02d:%02d\r\n",
        dt.Date, dt.Month, dt.Year, tt.Hours, tt.Minutes, tt.Seconds );
 }
 
@@ -60,7 +57,7 @@ void setup()
   digitalWrite(M5_LED, HIGH);  
   M5.begin();
 
-  FT.begin(luz, nullptr, TF2reloj, dormir);
+  FT.begin(luz, reloj2TF, TF2reloj, dormir);
   FT.setLED(50, 950);
 
   LCD_inicio();
@@ -98,16 +95,16 @@ void LCD_reloj()
   M5.Lcd.setTextDatum(TC_DATUM);
 
   M5.Lcd.setTextColor(TFT_CYAN);
-  M5.Lcd.drawString(FT.cFecha, 80, 3, 1);
+  M5.Lcd.drawString(FT.T_cFecha, 80, 3, 1);
 
   M5.Lcd.setTextSize(1);
   M5.Lcd.setTextDatum(MC_DATUM);
   M5.Lcd.setTextColor(TFT_GREENYELLOW);
-  M5.Lcd.drawString(FT.cDia, 80, 39, 4);
+  M5.Lcd.drawString(FT.T_cDia, 80, 39, 4);
 
   M5.Lcd.setTextDatum(BC_DATUM);
   M5.Lcd.setTextColor(TFT_ORANGE);
-  M5.Lcd.drawString(FT.cHora, 80, 78, 4);
+  M5.Lcd.drawString(FT.T_cHora, 80, 78, 4);
 
   M5.Lcd.setTextDatum(tempdatum);
 }
@@ -125,15 +122,15 @@ void LCD_reloja()
 
   //sprintf(buf, "%02i-%02i-%04i", _fecha.dia, _fecha.mes, _fecha.anio);
   M5.Lcd.setTextColor(TFT_CYAN);
-  M5.Lcd.drawString(FT.cFecha, 80, 5, 2);
+  M5.Lcd.drawString(FT.T_cFecha, 80, 5, 2);
 
   M5.Lcd.setTextColor(TFT_GREENYELLOW);
-  M5.Lcd.drawString(FT.cDia, 80, 28, 4);
+  M5.Lcd.drawString(FT.T_cDia, 80, 28, 4);
 
   M5.Lcd.setTextDatum(BC_DATUM);
   //sprintf(buf, "%02i:%02i:%02i", _fecha.hora24h, _fecha.minuto, _fecha.segundo);
   M5.Lcd.setTextColor(TFT_ORANGE);
-  M5.Lcd.drawString(FT.cHora, 80, 78, 4);
+  M5.Lcd.drawString(FT.T_cHora, 80, 78, 4);
 
   M5.Lcd.setTextDatum(tempdatum);
 }

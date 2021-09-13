@@ -75,21 +75,21 @@ public:
   const char *CET = "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00";
 
   _fTOR intercambio;
-  uint8_t  segundo;
-  uint8_t  minuto;
-  uint8_t  hora;
-  uint8_t  hora12h;
-  uint8_t  diaSemana;
-  uint8_t  dia;
-  uint8_t  mes;
-  uint16_t anio;
-  time_t   UTC;
-  const char *cDia;
-  const char *cMes;
-  char cFecha[15];
-  char cFechaCorta[50];
-  char cFechaLarga[100];
-  char cHora[10];
+  uint8_t  T_segundo;
+  uint8_t  T_minuto;
+  uint8_t  T_hora;
+  uint8_t  T_hora12h;
+  uint8_t  T_diaSemana;
+  uint8_t  T_dia;
+  uint8_t  T_mes;
+  uint16_t T_anio;
+  time_t   T_UTC;
+  const char *T_cDia;
+  const char *T_cMes;
+  char T_cFecha[15];
+  char T_cFechaCorta[50];
+  char T_cFechaLarga[100];
+  char T_cHora[10];
 
 /** * * * * * * * * * 
  * METODOS clase fechaTOR
@@ -110,6 +110,7 @@ public:
   bool update(int16_t s = 20);
 };
 
+extern esp_sleep_wakeup_cause_t causaACTV;
 extern fechaTOR FT;
 #define ft FT
 

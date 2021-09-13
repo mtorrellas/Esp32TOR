@@ -128,9 +128,12 @@ bool conectar_WiFi()
 void SNTP(timeval &tv)
 {
   time_t UTC;
-  //tm tml{.tm_sec = 0, .tm_min = 0, .tm_hour = 0, .tm_mday = 0, .tm_mon = 0, .tm_year = 0};
   tm tml{0, 0, 0, 0, 0, 0};
   //configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+  tv.tv_sec = 0;
+  tv.tv_usec = 0;
+  settimeofday(&tv, NULL);
+
   tcpip_adapter_init();
   if (sntp_enabled())
   {
@@ -141,7 +144,7 @@ void SNTP(timeval &tv)
   sntp_setservername(1, (char *)NTPserver2);
   sntp_setservername(2, (char *)NTPserver3);
   sntp_init();
-
+  
   while (tml.tm_year < (2020 - 1900))
   {
     if (temporizador(100))
@@ -153,7 +156,7 @@ void SNTP(timeval &tv)
     }
   }
 
-  //sntp_stop(); //OJO se pone para pruebas
+  sntp_stop(); //OJO se pone para pruebas
 }
 
 
