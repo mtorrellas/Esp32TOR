@@ -1,4 +1,4 @@
-# Librería **"Preferences.h"**
+# Librería **"Esp32TOR.h"**
 ## ***Quitar un espacio de nombres***
 
 En la implementación de Arduino de ***"Preferences"***,  no hay ningún método para eliminar completamente un espacio de nombres. Como resultado, en el transcurso de varios proyectos, la partición de preferencias de almacenamiento no volátil (nvs) ESP32 puede estar llena. Para borrar y volver a formatear completamente la memoria NVS utilizada por Preferencias, cree un boceto que contenga:
